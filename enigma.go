@@ -92,9 +92,9 @@ func encrypt(input string, e enigmaMachine) string {
 		current := part
 
 		// Plugboard in
-		// if valuePbIn, foundPbIn := e.Plugboard.PlugMap[current]; foundPbIn {
-		// 	current = valuePbIn
-		// }
+		if valuePbIn, foundPbIn := e.Plugboard.PlugMap[current]; foundPbIn {
+			current = valuePbIn
+		}
 		// Disk
 		current = e.Disk.DiskMapIn[current]
 		// Rotor1
@@ -114,9 +114,9 @@ func encrypt(input string, e enigmaMachine) string {
 		//diskmap
 		current = e.Disk.DiskMapOut[current]
 		// Plugboard
-		// if valuePbOut, foundPbOut := pb.PlugMap[current]; foundPbOut {
-		// 	current = valuePbOut
-		// }
+		if valuePbOut, foundPbOut := pb.PlugMap[current]; foundPbOut {
+			current = valuePbOut
+		}
 
 		e.Rotor1.Position += 1
 		if e.Rotor1.Position > 25 {
