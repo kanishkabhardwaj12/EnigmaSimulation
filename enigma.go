@@ -9,155 +9,199 @@ import (
 	"strings"
 )
 
-type rotor struct {
+// Rotor structure
+type Rotor struct {
 	Position     int               `json:"position"`
 	SlotPosition int               `json:"slot_position"`
 	RotorMapIn   map[string]string `json:"rotor_map_in"`
 	RotorMapOut  map[string]string `json:"rotor_map_out"`
 }
 
-type plugboard struct {
+// Plugboard structure
+type Plugboard struct {
 	PlugMap map[string]string `json:"plug_map"`
 }
 
-type reflector struct {
-	Reflector map[string]string `json:"reflector_map"`
+// Reflector structure
+type Reflector struct {
+	ReflectorMap map[string]string `json:"reflector_map"`
 }
 
-type disk struct {
+// Disk structure
+type Disk struct {
 	DiskMapIn  map[string]string `json:"disk_map_in"`
 	DiskMapOut map[string]string `json:"disk_map_out"`
 }
 
-type enigmaMachine struct {
-	Rotor1    rotor     `json:"rotor1"`
-	Rotor2    rotor     `json:"rotor2"`
-	Rotor3    rotor     `json:"rotor3"`
-	Disk      disk      `json:"disk"`
-	Plugboard plugboard `json:"plugboard"`
-	Reflector reflector `json:"reflector"`
+// EnigmaMachine structure
+type EnigmaMachine struct {
+	Rotor1    Rotor     `json:"rotor1"`
+	Rotor2    Rotor     `json:"rotor2"`
+	Rotor3    Rotor     `json:"rotor3"`
+	Disk      Disk      `json:"disk"`
+	Plugboard Plugboard `json:"plugboard"`
+	Reflector Reflector `json:"reflector"`
 }
 
-func AtoI(current string) int {
+func AtoI(current string) (int, error) {
 	convertedInt, err := strconv.Atoi(current)
 	if err != nil {
-		fmt.Println("Error converting string value of 'current' from rotor:", err)
+		return 0, fmt.Errorf("error converting string to int: %v", err)
 	}
-	return convertedInt
+	return convertedInt, nil
 }
 
 func outOfRangeCheck(check int) int {
-
-	if check > 26 {
-		return check % 26
-	}
+	check %= 26
 	if check < 0 {
-		return (check % 26) + 26
+		check += 26
 	}
 	return check
 }
 
-func processRight(r rotor, current string) string {
-
-	convertedInt := AtoI(current)
-	convertedInt += r.Position
-	convertedInt = outOfRangeCheck(convertedInt)
-	current = strconv.Itoa(convertedInt)
-	current = r.RotorMapIn[current]
-	convertedInt = AtoI(current)
-	convertedInt -= r.Position
-	convertedInt = outOfRangeCheck(convertedInt)
-	current = strconv.Itoa(convertedInt)
-	return current
+func processRight(r Rotor, current string) (string, error) {
+	i, err := AtoI(current)
+	if err != nil {
+		return "", err
+	}
+	i = outOfRangeCheck(i + r.Position)
+	key := strconv.Itoa(i)
+	mappedStr, ok := r.RotorMapIn[key]
+	if !ok {
+		return "", fmt.Errorf("key %s not found in RotorMapIn", key)
+	}
+	mapped, err := AtoI(mappedStr)
+	if err != nil {
+		return "", err
+	}
+	result := outOfRangeCheck(mapped - r.Position)
+	return strconv.Itoa(result), nil
 }
 
-func processLeft(r rotor, current string) string {
-	convertedInt := AtoI(current)
-	convertedInt += r.Position
-	convertedInt = outOfRangeCheck(convertedInt)
-	current = strconv.Itoa(convertedInt)
-	current = r.RotorMapOut[current]
-	convertedInt = AtoI(current)
-	convertedInt -= r.Position
-	convertedInt = outOfRangeCheck(convertedInt)
-	current = strconv.Itoa(convertedInt)
-	return current
+func processLeft(r Rotor, current string) (string, error) {
+	i, err := AtoI(current)
+	if err != nil {
+		return "", err
+	}
+	i = outOfRangeCheck(i + r.Position)
+	key := strconv.Itoa(i)
+	mappedStr, ok := r.RotorMapOut[key]
+	if !ok {
+		return "", fmt.Errorf("key %s not found in RotorMapOut", key)
+	}
+	mapped, err := AtoI(mappedStr)
+	if err != nil {
+		return "", err
+	}
+	result := outOfRangeCheck(mapped - r.Position)
+	return strconv.Itoa(result), nil
+}
+func stepRotors(e *EnigmaMachine) {
+	e.Rotor1.Position = (e.Rotor1.Position + 1) % 26
+	if e.Rotor1.Position == e.Rotor1.SlotPosition {
+		e.Rotor2.Position = (e.Rotor2.Position + 1) % 26
+		if e.Rotor2.Position == e.Rotor2.SlotPosition {
+			e.Rotor3.Position = (e.Rotor3.Position + 1) % 26
+		}
+	}
 }
 
-func encrypt(input string, e enigmaMachine) string {
+func plugboardSubstitute(pb Plugboard, char string) string {
+	if val, ok := pb.PlugMap[char]; ok {
+		return val
+	}
+	for k, v := range pb.PlugMap {
+		if v == char {
+			return k
+		}
+	}
+	return char
+}
+
+func encrypt(input string, e *EnigmaMachine) (string, error) {
+	input = strings.ToUpper(input)
 	parts := strings.Split(input, "")
 	var encrypted strings.Builder
 
 	for _, part := range parts {
-		current := part
-
-		// Plugboard in
-		// if valuePbIn, foundPbIn := e.Plugboard.PlugMap[current]; foundPbIn {
-		// 	current = valuePbIn
-		// }
-		// Disk
-		current = e.Disk.DiskMapIn[current]
-		// Rotor1
-		current = processRight(e.Rotor1, current)
-		// Rotor2
-		current = processRight(e.Rotor2, current)
-		// // Rotor3
-		current = processRight(e.Rotor3, current)
-		// // Reflector
-		current = e.Reflector.Reflector[current]
-		// Rotor3
-		current = processLeft(e.Rotor3, current)
-		// // Rotor2
-		current = processLeft(e.Rotor2, current)
-		// Rotor1
-		current = processLeft(e.Rotor1, current)
-		//diskmap
-		current = e.Disk.DiskMapOut[current]
-		// Plugboard
-		// if valuePbOut, foundPbOut := pb.PlugMap[current]; foundPbOut {
-		// 	current = valuePbOut
-		// }
-
-		e.Rotor1.Position += 1
-		if e.Rotor1.Position > 25 {
-			e.Rotor1.Position = 0
-			e.Rotor2.Position += 1
-			if e.Rotor2.Position > 25 {
-				e.Rotor2.Position = 0
-				e.Rotor3.Position += 1
-			}
+		if part < "A" || part > "Z" {
+			continue
 		}
+
+		current := plugboardSubstitute(e.Plugboard, part)
+
+		diskIn, ok := e.Disk.DiskMapIn[current]
+		if !ok {
+			return "", fmt.Errorf("character %s not found in DiskMapIn", current)
+		}
+		current = diskIn
+
+		var err error
+		if current, err = processRight(e.Rotor1, current); err != nil {
+			return "", err
+		}
+		if current, err = processRight(e.Rotor2, current); err != nil {
+			return "", err
+		}
+		if current, err = processRight(e.Rotor3, current); err != nil {
+			return "", err
+		}
+
+		if refl, ok := e.Reflector.ReflectorMap[current]; ok {
+			current = refl
+		} else {
+			return "", fmt.Errorf("character %s not found in ReflectorMap", current)
+		}
+
+		if current, err = processLeft(e.Rotor3, current); err != nil {
+			return "", err
+		}
+		if current, err = processLeft(e.Rotor2, current); err != nil {
+			return "", err
+		}
+		if current, err = processLeft(e.Rotor1, current); err != nil {
+			return "", err
+		}
+
+		diskOut, ok := e.Disk.DiskMapOut[current]
+		if !ok {
+			return "", fmt.Errorf("character %s not found in DiskMapOut", current)
+		}
+		current = diskOut
+
+		current = plugboardSubstitute(e.Plugboard, current)
+
 		encrypted.WriteString(current)
+		stepRotors(e)
 	}
 
-	return encrypted.String()
+	return encrypted.String(), nil
 }
 
-func main() {
-	// Open the JSON file
-	file, err := os.Open("enigma.json")
+func LoadEnigmaConfig(filePath string) (*EnigmaMachine, error) {
+	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
 	defer file.Close()
 
 	byteValue, err := io.ReadAll(file)
 	if err != nil {
-		fmt.Println("Error reading file:", err)
-		return
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var enigma enigmaMachine
-
+	var enigma EnigmaMachine
 	err = json.Unmarshal(byteValue, &enigma)
 	if err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
-		return
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
+	return &enigma, nil
+}
 
-	input := "OGNAXRREOY"
-
-	encrypted := encrypt(input, enigma)
-	fmt.Println("Encrypted text:", encrypted)
+func EncryptMessage(input string, config *EnigmaMachine) string {
+	encrypted, err := encrypt(input, config)
+	if err != nil {
+		return fmt.Sprintf("Encryption error: %v", err)
+	}
+	return encrypted
 }
