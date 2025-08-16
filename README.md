@@ -104,14 +104,3 @@ In the console version (in `main()` of `enigma.go`), after encrypting a sample i
 You can also test this via the GUI by entering your ciphertext back into the input field.
 
 ---
-
-## Further Improvements
-
-- **Plugboard:**  
-  The plugboard substitution code is present but commented out. You can enable it by uncommenting the relevant lines in `enigma.go`.
-
-- **Rotor Stepping:**  
-  Currently, a simplified stepping mechanism is used (rotor1 always steps, and when it passes 25, rotor2 and rotor3 are stepped). For a more authentic simulation (with double-stepping), additional logic can be implemented.
-
-- **Error Handling & Debugging:**  
-  You may add logging or print statements for additional debugging and validation of the encryption process.
